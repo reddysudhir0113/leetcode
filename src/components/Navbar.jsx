@@ -6,12 +6,27 @@ import {
   LayoutDashboard, BookOpen, Compass, Award, Clock, Sparkles
 } from "lucide-react";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
+import ConsistencyTracker from "./ConsistencyTracker";
 
 export default function Navbar() {
-  const { streak, totalSolved, totalQuestions } = useContext(AppContext);
+  const { streak, totalSolved, totalQuestions, questions, solvedList, buddyXp } = useContext(AppContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [themeMode, setThemeMode] = useState(() => localStorage.getItem("codecrack_theme") || "finch"); // ghibli vs finch
+  const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
+
+  // Calculate daily solved status for the mascot indicator
+  const [isDailySolved, setIsDailySolved] = useState(false);
+  useEffect(() => {
+    if (!questions || questions.length === 0) return;
+    const today = new Date();
+    const dateNum = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const index = dateNum % questions.length;
+    const dailyProblem = questions[index];
+    if (dailyProblem) {
+      setIsDailySolved(solvedList.includes(dailyProblem.id));
+    }
+  }, [questions, solvedList]);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,6 +51,9 @@ export default function Navbar() {
       document.documentElement.style.setProperty("--text-primary", "#0f172a");
       document.documentElement.style.setProperty("--text-secondary", "#475569");
       document.documentElement.style.setProperty("--text-muted", "#64748b");
+      // Calendar cell colors for light theme
+      document.documentElement.style.setProperty("--cell-empty", "rgba(0, 0, 0, 0.08)");
+      document.documentElement.style.setProperty("--cell-border", "rgba(0, 0, 0, 0.14)");
     } else {
       // Ghibli Forest Theme
       body.style.background = "radial-gradient(circle at 50% 0%, #0c1a16 0%, #040910 100%)";
@@ -53,6 +71,9 @@ export default function Navbar() {
       document.documentElement.style.setProperty("--text-primary", "#fefcfa");
       document.documentElement.style.setProperty("--text-secondary", "#94a3b8");
       document.documentElement.style.setProperty("--text-muted", "#475569");
+      // Calendar cell colors for dark theme
+      document.documentElement.style.setProperty("--cell-empty", "rgba(255, 255, 255, 0.07)");
+      document.documentElement.style.setProperty("--cell-border", "rgba(255, 255, 255, 0.10)");
     }
   }, [themeMode]);
 
@@ -190,7 +211,12 @@ export default function Navbar() {
             </button>
 
             {/* Streak Counter */}
-            <div style={streakBadgeStyle} className="glass-panel" title="Daily solved streak">
+            <div 
+              style={{ ...streakBadgeStyle, cursor: "pointer" }} 
+              className="glass-panel" 
+              title="Click to view Coding Profile & Streaks"
+              onClick={() => setIsStreakModalOpen(true)}
+            >
               <Flame size={16} color={streak.current > 0 ? "orange" : "var(--text-muted)"} style={{ fill: streak.current > 0 ? "orange" : "none" }} />
               <span style={{ fontWeight: "700", color: streak.current > 0 ? "orange" : "var(--text-secondary)" }}>
                 {streak.current}
@@ -274,6 +300,62 @@ export default function Navbar() {
         isOpen={isShortcutModalOpen} 
         onClose={() => setIsShortcutModalOpen(false)} 
       />
+
+      {/* Profile & Streak Heatmap Modal */}
+      {isStreakModalOpen && (
+        <div style={modalOverlayStyle} onClick={() => setIsStreakModalOpen(false)}>
+          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()} className="glass-panel">
+            
+            {/* Modal Header */}
+            <div style={modalHeaderStyle}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Award size={20} color="var(--primary)" />
+                <h3 style={{ fontSize: "1.2rem", fontWeight: "800" }}>Developer Coding Profile</h3>
+              </div>
+              <button onClick={() => setIsStreakModalOpen(false)} style={closeButtonStyle}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Profile Info Header */}
+            <div style={profileHeaderStyle}>
+              <div style={profileAvatarContainerStyle}>
+                <img src="code_buddy_pet.png" alt="Developer Avatar" style={profileAvatarStyle} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <h4 style={{ fontSize: "1.1rem", fontWeight: "750", color: "var(--text-primary)" }}>Code Buddy Companion</h4>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                  Level {Math.floor(buddyXp / 100) + 1} • {totalSolved} solved problems
+                </span>
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div style={profileStatsRowStyle}>
+              <div style={profileStatCardStyle} className="glass-panel">
+                <Flame size={20} color="orange" style={{ fill: "orange" }} />
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={profileStatValStyle}>{streak.current} Days</span>
+                  <span style={profileStatLblStyle}>Current Streak</span>
+                </div>
+              </div>
+              <div style={profileStatCardStyle} className="glass-panel">
+                <Award size={20} color="var(--secondary)" />
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={profileStatValStyle}>{totalSolved} / {totalQuestions}</span>
+                  <span style={profileStatLblStyle}>Problems Solved</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Consistency Heatmap */}
+            <div style={{ marginTop: "16px" }}>
+              <ConsistencyTracker />
+            </div>
+
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -446,5 +528,110 @@ const mobileDrawerStatsStyle = {
   borderTop: "1px solid rgba(255, 255, 255, 0.08)",
   paddingTop: "12px",
   fontSize: "0.9rem",
+  color: "var(--text-secondary)"
+};
+
+// Modal specific styling
+const modalOverlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100vw",
+  height: "100vh",
+  backgroundColor: "rgba(0, 0, 0, 0.75)",
+  backdropFilter: "blur(8px)",
+  zIndex: 20000,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "16px"
+};
+
+const modalContentStyle = {
+  width: "100%",
+  maxWidth: "900px",
+  maxHeight: "90vh",
+  overflowY: "auto",
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-glass)",
+  borderRadius: "20px",
+  padding: "24px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px",
+  boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)"
+};
+
+const modalHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+  paddingBottom: "14px"
+};
+
+const closeButtonStyle = {
+  background: "rgba(255, 255, 255, 0.05)",
+  border: "none",
+  borderRadius: "50%",
+  width: "32px",
+  height: "32px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "var(--text-secondary)",
+  cursor: "pointer",
+  transition: "all 0.2s"
+};
+
+const profileHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "16px",
+  padding: "4px 0"
+};
+
+const profileAvatarContainerStyle = {
+  width: "56px",
+  height: "56px",
+  borderRadius: "50%",
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid var(--border-glass)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "hidden"
+};
+
+const profileAvatarStyle = {
+  width: "48px",
+  height: "48px",
+  objectFit: "contain"
+};
+
+const profileStatsRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "16px"
+};
+
+const profileStatCardStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  padding: "12px 16px",
+  background: "rgba(255, 255, 255, 0.02)",
+  borderRadius: "14px",
+  border: "1px solid rgba(255, 255, 255, 0.04)"
+};
+
+const profileStatValStyle = {
+  fontSize: "1.1rem",
+  fontWeight: "800",
+  color: "var(--text-primary)"
+};
+
+const profileStatLblStyle = {
+  fontSize: "0.75rem",
   color: "var(--text-secondary)"
 };

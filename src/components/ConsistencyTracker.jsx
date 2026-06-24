@@ -1,233 +1,336 @@
 import React, { useContext } from "react";
 import { AppContext } from "../context/AppContext";
 
+const CELL = 16;          // cell size in px
+const GAP  = 3;           // gap between cells in px
+const STEP = CELL + GAP;  // 19px per column/row slot
+const DAY_COL_W = 36;     // weekday label column width
+
 export default function ConsistencyTracker() {
   const { activityLog } = useContext(AppContext);
 
-  // Generate date array for the last 365 days
-  const generateYearDates = () => {
-    const dates = [];
-    const today = new Date();
-    // Start from 364 days ago
-    for (let i = 364; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(today.getDate() - i);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
-      dates.push({
-        dateStr,
-        dayOfWeek: d.getDay(),
-        month: d.getMonth()
-      });
-    }
-    return dates;
-  };
-
-  const dates = generateYearDates();
-  
-  // Calculate frequencies of dates in activityLog
-  const activityMap = {};
-  activityLog.forEach(date => {
-    activityMap[date] = (activityMap[date] || 0) + 1;
-  });
-
-  // Group dates into weeks (7 days each)
-  const weeks = [];
-  let currentWeek = [];
-  
-  dates.forEach((d, idx) => {
-    currentWeek.push(d);
-    // If it's Saturday (d.dayOfWeek === 6) or the last item, push the week
-    if (d.dayOfWeek === 6 || idx === dates.length - 1) {
-      // Pad first week if it doesn't start with Sunday (0)
-      if (weeks.length === 0 && currentWeek.length < 7) {
-        const paddingCount = 7 - currentWeek.length;
-        const padded = Array(paddingCount).fill(null).concat(currentWeek);
-        weeks.push(padded);
-      } else {
-        weeks.push(currentWeek);
-      }
-      currentWeek = [];
-    }
-  });
-
-  // Color selection based on solved count
-  const getCellColor = (count) => {
-    if (count === 0) return "rgba(255, 255, 255, 0.04)"; // Empty
-    if (count === 1) return "#064e3b"; // Dark green
-    if (count === 2) return "#047857"; // Medium green
-    if (count === 3) return "#10b981"; // Emerald green
-    return "#34d399"; // Bright green (4+)
-  };
-
-  const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  // Find month changes to render headers
-  const getMonthHeaders = () => {
-    const headers = [];
-    let prevMonth = -1;
-    
-    weeks.forEach((week, weekIdx) => {
-      // Find first non-null day in week
-      const firstDay = week.find(d => d !== null);
-      if (firstDay && firstDay.month !== prevMonth) {
-        headers.push({ name: monthLabels[firstDay.month], weekIdx });
-        prevMonth = firstDay.month;
-      }
+  // ── Build 365-day list, oldest first ──────────────────────────────────────
+  const today = new Date();
+  const dates = [];
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const y  = d.getFullYear();
+    const m  = String(d.getMonth() + 1).padStart(2, "0");
+    const dy = String(d.getDate()).padStart(2, "0");
+    dates.push({
+      dateStr:   `${y}-${m}-${dy}`,
+      dayOfWeek: d.getDay(),   // 0=Sun … 6=Sat
+      month:     d.getMonth(), // 0–11
+      date:      d.getDate(),  // 1–31
     });
-    return headers;
-  };
+  }
 
-  const headers = getMonthHeaders();
+  // ── Frequency map ─────────────────────────────────────────────────────────
+  const actMap = {};
+  activityLog.forEach((d) => { actMap[d] = (actMap[d] || 0) + 1; });
+
+  // ── Pad so first column starts on Sunday ─────────────────────────────────
+  const firstDow = dates[0].dayOfWeek;
+  const padded   = [...Array(firstDow).fill(null), ...dates];
+
+  // ── Slice into columns of 7 (one column = one week, Sunday on top) ────────
+  const weeks = [];
+  for (let i = 0; i < padded.length; i += 7) {
+    weeks.push(padded.slice(i, i + 7));
+  }
+
+  // ── Month header positions ────────────────────────────────────────────────
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const monthHeaders = [];
+  let prevMonth = -1;
+  weeks.forEach((week, wIdx) => {
+    const first = week.find((d) => d !== null);
+    if (first && first.month !== prevMonth) {
+      monthHeaders.push({ label: MON[first.month], wIdx });
+      prevMonth = first.month;
+    }
+  });
+
+  const uniqueDays = new Set(activityLog).size;
+  const totalW     = DAY_COL_W + weeks.length * STEP;
 
   return (
-    <div style={wrapperStyle} className="glass-panel">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <h4 style={{ fontSize: "1.1rem", fontWeight: "700" }}>Consistency Calendar</h4>
-        <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-          {activityLog.length} solves registered this year
-        </span>
+    <div style={wrapper} className="glass-panel">
+      {/* ── Title row ── */}
+      <div style={titleRow}>
+        <h4 style={titleTxt}>Consistency Calendar</h4>
+        <span style={subtitleTxt}>{uniqueDays} active day{uniqueDays !== 1 ? "s" : ""} this year</span>
       </div>
 
-      {/* Heatmap Grid Wrapper (Scrollable on mobile) */}
-      <div style={scrollContainerStyle}>
-        <div style={gridContainerStyle}>
-          {/* Month Headers */}
-          <div style={monthHeadersRowStyle}>
-            <div style={{ width: "24px" }} /> {/* spacer for weekday labels */}
-            {headers.map((h, i) => (
-              <span key={i} style={{ 
-                ...monthLabelStyle, 
-                left: `${(h.weekIdx * 15) + 32}px` 
-              }}>
-                {h.name}
-              </span>
-            ))}
+      {/* ── Scrollable heatmap ── */}
+      <div style={scrollBox}>
+        <div style={{ width: `${totalW}px`, position: "relative" }}>
+
+          {/* Month labels */}
+          <div style={monthRowStyle}>
+            <div style={{ width: `${DAY_COL_W}px`, flexShrink: 0 }} />
+            <div style={{ position: "relative", flex: 1, height: "20px" }}>
+              {monthHeaders.map((h, i) => (
+                <span key={i} style={{ ...monthLabel, left: `${h.wIdx * STEP}px` }}>
+                  {h.label}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <div style={{ display: "flex", gap: "3px" }}>
-            {/* Weekday Labels */}
-            <div style={weekdayColStyle}>
-              <span style={weekdayLabelStyle}>M</span>
-              <span style={weekdayLabelStyle}>W</span>
-              <span style={weekdayLabelStyle}>F</span>
+          {/* Grid body */}
+          <div style={gridBody}>
+
+            {/* Weekday label column — 7 rows */}
+            <div style={dayLabelCol}>
+              {["Su","Mo","Tu","We","Th","Fr","Sa"].map((d, i) => (
+                <div key={i} style={dayLabelCell}>
+                  <span style={dayLabelTxt}>{d}</span>
+                </div>
+              ))}
             </div>
 
-            {/* Weeks */}
-            <div style={weeksContainerStyle}>
+            {/* Week columns */}
+            <div style={weeksRow}>
               {weeks.map((week, wIdx) => (
-                <div key={wIdx} style={weekColStyle}>
+                <div key={wIdx} style={weekCol}>
                   {week.map((day, dIdx) => {
-                    if (!day) return <div key={dIdx} style={cellStyle} />;
-                    const count = activityMap[day.dateStr] || 0;
+                    // Invisible spacer for padding cells
+                    if (!day) {
+                      return <div key={`pad-${wIdx}-${dIdx}`} style={invisCell} />;
+                    }
+
+                    const count   = actMap[day.dateStr] || 0;
+                    const isToday = day.dateStr === (() => {
+                      const t = new Date();
+                      return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+                    })();
+
                     return (
                       <div
                         key={day.dateStr}
-                        style={{
-                          ...cellStyle,
-                          backgroundColor: getCellColor(count),
-                          border: count > 0 ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid rgba(255, 255, 255, 0.02)"
-                        }}
-                        title={`${day.dateStr} : ${count} solved`}
-                      />
+                        style={getCell(count, isToday)}
+                        className="consistency-cell"
+                        title={
+                          count > 0
+                            ? `${day.dateStr} · ${count} problem${count > 1 ? "s" : ""} solved 🐧`
+                            : `${day.dateStr} · No activity`
+                        }
+                      >
+                        {/* Penguin visible inside the cell when solved */}
+                        {count > 0 && (
+                          <img
+                            src="cute_penguin.png"
+                            alt="🐧"
+                            style={penguinImg}
+                            draggable={false}
+                          />
+                        )}
+                      </div>
                     );
                   })}
                 </div>
               ))}
             </div>
+
           </div>
         </div>
       </div>
 
-      {/* Legend */}
-      <div style={legendStyle}>
-        <span>Less</span>
-        <div style={{ ...cellStyle, backgroundColor: "rgba(255, 255, 255, 0.04)" }} />
-        <div style={{ ...cellStyle, backgroundColor: "#064e3b" }} />
-        <div style={{ ...cellStyle, backgroundColor: "#047857" }} />
-        <div style={{ ...cellStyle, backgroundColor: "#10b981" }} />
-        <div style={{ ...cellStyle, backgroundColor: "#34d399" }} />
-        <span>More</span>
+      {/* ── Legend ── */}
+      <div style={legendRow}>
+        <span style={legendTxt}>Less</span>
+        <div style={emptyLegendCell} />
+        <div style={activeLegendCell}>
+          <img src="cute_penguin.png" alt="🐧" style={penguinImg} draggable={false} />
+        </div>
+        <span style={legendTxt}>More · 🐧 = a solved day</span>
       </div>
     </div>
   );
 }
 
-// Styles
-const wrapperStyle = {
-  padding: "20px",
+// ── Cell factory ──────────────────────────────────────────────────────────────
+function getCell(count, isToday) {
+  const base = {
+    width:         `${CELL}px`,
+    height:        `${CELL}px`,
+    borderRadius:  "3px",
+    overflow:      "hidden",
+    position:      "relative",
+    display:       "flex",
+    alignItems:    "center",
+    justifyContent:"center",
+    flexShrink:    0,
+  };
+
+  if (isToday) {
+    return {
+      ...base,
+      outline:         "2px solid var(--primary)",
+      outlineOffset:   "1px",
+      backgroundColor: count > 0 ? "rgba(13,148,136,0.35)" : "rgba(251,191,36,0.08)",
+      border:          "1px solid var(--primary)",
+      backgroundImage: count > 0 ? "url('cute_penguin.png')" : "none",
+      backgroundSize:  "cover",
+      backgroundPosition: "center",
+      backgroundRepeat:   "no-repeat",
+    };
+  }
+
+  if (count === 0) {
+    return {
+      ...base,
+      backgroundColor: "var(--cell-empty, rgba(0,0,0,0.08))",
+      border:          "1px solid var(--cell-border, rgba(0,0,0,0.10))",
+    };
+  }
+
+  // Solved day → rich teal background so black penguin contrasts clearly
+  return {
+    ...base,
+    backgroundImage: "url('cute_penguin.png')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    backgroundColor: "rgba(13,148,136,0.35)",
+    border: "1px solid rgba(45,212,191,0.55)",
+  };
+}
+
+// ── Static styles ─────────────────────────────────────────────────────────────
+const wrapper = {
+  padding:      "20px",
   borderRadius: "16px",
-  width: "100%",
-  overflow: "hidden"
+  width:        "100%",
+  overflow:     "hidden",
 };
 
-const scrollContainerStyle = {
-  overflowX: "auto",
-  paddingBottom: "10px",
-  width: "100%"
+const titleRow = {
+  display:        "flex",
+  justifyContent: "space-between",
+  alignItems:     "center",
+  marginBottom:   "14px",
 };
 
-const gridContainerStyle = {
-  minWidth: "830px", // Fits 53 weeks * 15px width
-  position: "relative"
+const titleTxt = {
+  fontSize:   "1rem",
+  fontWeight: "700",
+  color:      "var(--text-primary)",
 };
 
-const monthHeadersRowStyle = {
-  height: "20px",
-  position: "relative",
-  marginBottom: "4px"
+const subtitleTxt = {
+  fontSize: "0.78rem",
+  color:    "var(--text-secondary)",
 };
 
-const monthLabelStyle = {
-  position: "absolute",
-  fontSize: "0.75rem",
-  color: "var(--text-muted)",
-  fontWeight: "600"
+const scrollBox = {
+  overflowX:     "auto",
+  paddingBottom: "8px",
+  width:         "100%",
 };
 
-const weekdayColStyle = {
-  display: "grid",
-  gridTemplateRows: "repeat(7, 12px)",
-  gap: "3px",
-  width: "24px",
-  paddingTop: "15px", // Match grid alignment
-  alignItems: "center"
+const monthRowStyle = {
+  display:      "flex",
+  alignItems:   "flex-end",
+  marginBottom: "5px",
 };
 
-const weekdayLabelStyle = {
-  fontSize: "0.7rem",
-  color: "var(--text-muted)",
-  fontWeight: "500",
-  lineHeight: "12px",
-  height: "12px"
+const monthLabel = {
+  position:   "absolute",
+  fontSize:   "0.68rem",
+  color:      "var(--text-muted)",
+  fontWeight: "600",
+  whiteSpace: "nowrap",
+  bottom:     "0",
 };
 
-const weeksContainerStyle = {
+const gridBody = {
   display: "flex",
-  gap: "3px"
+  gap:     "0px",
 };
 
-const weekColStyle = {
-  display: "grid",
-  gridTemplateRows: "repeat(7, 12px)",
-  gap: "3px"
+const dayLabelCol = {
+  display:             "grid",
+  gridTemplateRows:    `repeat(7, ${CELL}px)`,
+  gap:                 `${GAP}px`,
+  width:               `${DAY_COL_W}px`,
+  flexShrink:          0,
 };
 
-const cellStyle = {
-  width: "12px",
-  height: "12px",
-  borderRadius: "3px",
-  transition: "transform 0.1s"
+const dayLabelCell = {
+  height:      `${CELL}px`,
+  display:     "flex",
+  alignItems:  "center",
+  paddingRight: "6px",
 };
 
-const legendStyle = {
-  display: "flex",
+const dayLabelTxt = {
+  fontSize:   "0.65rem",
+  color:      "var(--text-muted)",
+  fontWeight: "600",
+  lineHeight: 1,
+};
+
+const weeksRow = {
+  display:  "flex",
+  gap:      `${GAP}px`,
+};
+
+const weekCol = {
+  display:             "grid",
+  gridTemplateRows:    `repeat(7, ${CELL}px)`,
+  gap:                 `${GAP}px`,
+};
+
+const invisCell = {
+  width:     `${CELL}px`,
+  height:    `${CELL}px`,
+  opacity:   0,
+  flexShrink: 0,
+};
+
+const penguinImg = {
+  width:      "100%",
+  height:     "100%",
+  objectFit:  "contain",
+  display:    "block",
+  pointerEvents: "none",
+};
+
+const legendRow = {
+  display:    "flex",
   alignItems: "center",
-  justifyContent: "flex-end",
-  gap: "4px",
-  fontSize: "0.75rem",
-  color: "var(--text-muted)",
-  marginTop: "16px"
+  gap:        "6px",
+  fontSize:   "0.72rem",
+  color:      "var(--text-muted)",
+  marginTop:  "14px",
+};
+
+const legendTxt = {
+  fontSize: "0.72rem",
+  color:    "var(--text-muted)",
+};
+
+const emptyLegendCell = {
+  width:           `${CELL}px`,
+  height:          `${CELL}px`,
+  borderRadius:    "3px",
+  backgroundColor: "var(--cell-empty, rgba(0,0,0,0.08))",
+  border:          "1px solid var(--cell-border, rgba(0,0,0,0.10))",
+  flexShrink:      0,
+};
+
+const activeLegendCell = {
+  width:           `${CELL}px`,
+  height:          `${CELL}px`,
+  borderRadius:    "3px",
+  backgroundColor: "rgba(13,148,136,0.35)",
+  border:          "1px solid rgba(45,212,191,0.55)",
+  overflow:        "hidden",
+  display:         "flex",
+  alignItems:      "center",
+  justifyContent:  "center",
+  flexShrink:      0,
 };

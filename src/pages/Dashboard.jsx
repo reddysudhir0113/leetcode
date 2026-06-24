@@ -7,6 +7,7 @@ import {
   Calendar, Compass, Map, Briefcase, ClipboardList, Target, Play, Bookmark, FileText
 } from "lucide-react";
 import CodeBuddyPanel from "../components/CodeBuddyPanel";
+import ConsistencyTracker from "../components/ConsistencyTracker";
 
 export default function Dashboard() {
   const { 
@@ -152,23 +153,53 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Pet Stats Section (Adventure XP bar) */}
-      <div style={adventureCardStyle} className="glass-panel">
-        <div style={adventureLabelRowStyle}>
-          <div style={lightningWrapperStyle}>
-            <Zap size={18} fill="var(--primary)" color="var(--primary)" />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-            <span style={adventureTitleStyle}>{level}th Debug Adventure</span>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
-              <div style={barBgStyle}>
-                <div style={{ ...barFillStyle, width: `${(currentLevelXp / xpNeeded) * 100}%` }} />
+      {/* Stats Row Grid (Adventure XP Bar + Daily Streak Box) */}
+      <div className="dashboard-stats-grid">
+        {/* Pet Stats Section (Adventure XP bar) */}
+        <div style={adventureCardStyle} className="glass-panel">
+          <div style={adventureLabelRowStyle}>
+            <div style={lightningWrapperStyle}>
+              <Zap size={18} fill="var(--primary)" color="var(--primary)" />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+              <span style={adventureTitleStyle}>{level}th Debug Adventure</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                <div style={barBgStyle}>
+                  <div style={{ ...barFillStyle, width: `${(currentLevelXp / xpNeeded) * 100}%` }} />
+                </div>
+                <span style={xpFractionStyle}>{currentLevelXp} / {xpNeeded}</span>
               </div>
-              <span style={xpFractionStyle}>{currentLevelXp} / {xpNeeded}</span>
             </div>
           </div>
         </div>
+
+        {/* Daily Streak & Mascot Box */}
+        <div className="streak-mascot-card glass-panel">
+          <div className="streak-info">
+            <span className="streak-title">Daily Streak</span>
+            <div className="streak-value-wrapper">
+              <Flame size={20} fill={streak.current > 0 ? "var(--primary)" : "none"} color={streak.current > 0 ? "var(--primary)" : "var(--text-secondary)"} />
+              <span className="streak-value">{streak.current} Days</span>
+            </div>
+            <span className="streak-status-text">
+              {isDailySolved ? (
+                <>Status: <span className="streak-status-active">Active Today! 🔥</span></>
+              ) : (
+                "Status: Pending daily challenge... ❄️"
+              )}
+            </span>
+          </div>
+          <div className="mascot-container">
+            <img 
+              src="cute_penguin.png" 
+              alt="Cute Penguin" 
+              className={`mascot-image ${isDailySolved ? "active" : ""}`}
+              title={isDailySolved ? "Your daily challenge is completed! 🐧" : "Solve today's daily challenge to wake up your penguin!"}
+            />
+          </div>
+        </div>
       </div>
+
 
       {/* Daily goals header */}
       <div style={goalsBannerStyle} className="glass-panel">
@@ -234,6 +265,9 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {/* GitHub-style Consistency Heatmap Calendar */}
+      <ConsistencyTracker />
 
       {/* Quick links */}
       <div className="quick-links-grid">
@@ -371,13 +405,17 @@ const adventureCardStyle = {
   padding: "12px 16px",
   borderRadius: "16px",
   background: "var(--bg-card)",
-  border: "1px solid var(--border-glass)"
+  border: "1px solid var(--border-glass)",
+  display: "flex",
+  alignItems: "center",
+  width: "100%"
 };
 
 const adventureLabelRowStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "12px"
+  gap: "12px",
+  width: "100%"
 };
 
 const lightningWrapperStyle = {

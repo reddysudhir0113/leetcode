@@ -35,6 +35,10 @@
   --text-muted: #475569;
 
   --nav-height: 72px;
+
+  /* Consistency calendar cell colors — dark theme */
+  --cell-empty: rgba(255, 255, 255, 0.07);
+  --cell-border: rgba(255, 255, 255, 0.10);
 }
 
 * {
@@ -503,3 +507,116 @@ h1, h2, h3, h4, h5, h6 {
     display: none !important;
   }
 }
+
+/* Dashboard Stats Grid & Streak Mascot Card */
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.streak-mascot-card {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 106px;
+}
+
+.streak-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.streak-title {
+  font-size: 0.75rem;
+  font-weight: 750;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.streak-value-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.streak-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--primary);
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+}
+
+.streak-status-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.streak-status-active {
+  color: var(--easy);
+  font-weight: 700;
+}
+
+.mascot-container {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.mascot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) grayscale(100%);
+  opacity: 0.35;
+  transition: all 0.3s ease;
+}
+
+.mascot-image.active {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) grayscale(0%);
+  opacity: 1;
+  animation: mascot-float 3s ease-in-out infinite;
+}
+
+@keyframes mascot-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+}
+
+@keyframes mascot-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
+
+.consistency-cell {
+  position: relative;
+  z-index: 1;
+}
+
+
