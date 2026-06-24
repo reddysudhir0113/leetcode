@@ -143,7 +143,7 @@ export default function CompanyDetail() {
       </div>
 
       {/* Distribution Charts panel */}
-      <div style={chartsPanelGridStyle}>
+      <div className="charts-grid">
         {/* Difficulty Distribution Chart */}
         <div style={chartCardStyle} className="glass-panel">
           <h3 style={chartTitleStyle}>Difficulty Distribution</h3>
@@ -329,33 +329,7 @@ const compIconLargeStyle = {
   fontSize: "1.8rem"
 };
 
-const chartsPanelGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: "16px",
-  // Handled by CSS styling responsiveness
-  "@media (min-width: 800px)": {
-    gridTemplateColumns: "1fr 1fr"
-  }
-};
 
-// Responsive Inject
-if (typeof document !== "undefined") {
-  const styleId = "companydetail-charts-css";
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = `
-      @media (min-width: 800px) {
-        .charts-grid {
-          grid-template-columns: 1fr 1fr !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-chartsPanelGridStyle.className = "charts-grid";
 
 const chartCardStyle = {
   padding: "20px",

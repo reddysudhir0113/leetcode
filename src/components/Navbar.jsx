@@ -11,7 +11,7 @@ export default function Navbar() {
   const { streak, totalSolved, totalQuestions } = useContext(AppContext);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
-  const [themeMode, setThemeMode] = useState("obsidian"); // obsidian vs deep-space
+  const [themeMode, setThemeMode] = useState(() => localStorage.getItem("codecrack_theme") || "finch"); // ghibli vs finch
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,15 +19,40 @@ export default function Navbar() {
   // Listen to theme changes
   useEffect(() => {
     const body = document.body;
-    if (themeMode === "deep-space") {
-      body.style.background = "radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%)";
-      document.documentElement.style.setProperty("--bg-card", "rgba(30, 41, 59, 0.4)");
-      document.documentElement.style.setProperty("--bg-darker", "#020617");
+    if (themeMode === "finch") {
+      // Finch Cozy Light Theme
+      body.style.background = "radial-gradient(circle at 50% 0%, #e6f8f7 0%, #f7fdfd 100%)";
+      document.documentElement.style.setProperty("--bg-card", "#ffffff");
+      document.documentElement.style.setProperty("--bg-dark", "#d5f5f2");
+      document.documentElement.style.setProperty("--bg-darker", "#b2ece7");
+      document.documentElement.style.setProperty("--border-glass", "rgba(13, 148, 136, 0.15)");
+      document.documentElement.style.setProperty("--primary", "#fb923c");
+      document.documentElement.style.setProperty("--primary-glow", "rgba(251, 146, 60, 0.3)");
+      document.documentElement.style.setProperty("--secondary", "#0d9488");
+      document.documentElement.style.setProperty("--secondary-glow", "rgba(13, 148, 136, 0.3)");
+      document.documentElement.style.setProperty("--easy", "#06b6d4");
+      document.documentElement.style.setProperty("--medium", "#fb923c");
+      document.documentElement.style.setProperty("--hard", "#ec4899");
+      document.documentElement.style.setProperty("--text-primary", "#0f172a");
+      document.documentElement.style.setProperty("--text-secondary", "#475569");
+      document.documentElement.style.setProperty("--text-muted", "#64748b");
     } else {
-      // Default Obsidian
-      body.style.background = "radial-gradient(circle at 50% 0%, #111827 0%, #030712 100%)";
-      document.documentElement.style.setProperty("--bg-card", "rgba(15, 23, 42, 0.45)");
-      document.documentElement.style.setProperty("--bg-darker", "#020617");
+      // Ghibli Forest Theme
+      body.style.background = "radial-gradient(circle at 50% 0%, #0c1a16 0%, #040910 100%)";
+      document.documentElement.style.setProperty("--bg-card", "rgba(12, 26, 22, 0.7)");
+      document.documentElement.style.setProperty("--bg-dark", "#08141d");
+      document.documentElement.style.setProperty("--bg-darker", "#040910");
+      document.documentElement.style.setProperty("--border-glass", "rgba(251, 191, 36, 0.15)");
+      document.documentElement.style.setProperty("--primary", "#fbbf24");
+      document.documentElement.style.setProperty("--primary-glow", "rgba(251, 191, 36, 0.4)");
+      document.documentElement.style.setProperty("--secondary", "#2dd4bf");
+      document.documentElement.style.setProperty("--secondary-glow", "rgba(45, 212, 191, 0.4)");
+      document.documentElement.style.setProperty("--easy", "#34d399");
+      document.documentElement.style.setProperty("--medium", "#f472b6");
+      document.documentElement.style.setProperty("--hard", "#c084fc");
+      document.documentElement.style.setProperty("--text-primary", "#fefcfa");
+      document.documentElement.style.setProperty("--text-secondary", "#94a3b8");
+      document.documentElement.style.setProperty("--text-muted", "#475569");
     }
   }, [themeMode]);
 
@@ -95,7 +120,11 @@ export default function Navbar() {
   }, [navigate]);
 
   const toggleTheme = () => {
-    setThemeMode(prev => prev === "obsidian" ? "deep-space" : "obsidian");
+    setThemeMode(prev => {
+      const next = prev === "ghibli" ? "finch" : "ghibli";
+      localStorage.setItem("codecrack_theme", next);
+      return next;
+    });
   };
 
   const navLinks = [
@@ -120,14 +149,14 @@ export default function Navbar() {
           <Link to="/" style={logoLinkStyle}>
             <div style={logoContainerStyle}>
               <Terminal size={22} className="gradient-text-indigo-cyan" style={{ filter: "drop-shadow(0 0 8px var(--primary))" }} />
-              <span style={logoTextStyle} className="gradient-text-indigo-cyan">
+              <span style={logoTextStyle} className="gradient-text-indigo-cyan logo-text">
                 CodeCrack
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div style={desktopLinksStyle}>
+          <div style={desktopLinksStyle} className="desktop-nav">
             {navLinks.map(link => {
               const Icon = link.icon;
               const isActive = location.pathname === link.path;
@@ -173,6 +202,7 @@ export default function Navbar() {
               onClick={() => setIsShortcutModalOpen(true)} 
               style={iconButtonStyle} 
               title="Keyboard Shortcuts (Press ?)"
+              className="keyboard-shortcut-btn"
             >
               <Keyboard size={18} />
             </button>
@@ -181,12 +211,12 @@ export default function Navbar() {
             <button 
               onClick={toggleTheme} 
               style={themeToggleStyle}
-              title={`Switch dark theme (Current: ${themeMode === "obsidian" ? "Obsidian" : "Deep Space"})`}
+              title={`Switch Theme (Current: ${themeMode === "ghibli" ? "Ghibli Forest" : "Finch Cozy"})`}
             >
               <div style={{
                 ...themeDotStyle,
-                transform: themeMode === "obsidian" ? "translateX(0px)" : "translateX(18px)",
-                backgroundColor: themeMode === "obsidian" ? "var(--primary)" : "var(--secondary)"
+                transform: themeMode === "ghibli" ? "translateX(0px)" : "translateX(18px)",
+                backgroundColor: themeMode === "ghibli" ? "var(--primary)" : "var(--secondary)"
               }} />
             </button>
 
@@ -194,6 +224,7 @@ export default function Navbar() {
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
               style={mobileMenuToggleStyle}
+              className="mobile-hamburger"
             >
               {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -254,9 +285,11 @@ const navbarStyle = {
   left: "12px",
   right: "12px",
   height: "64px",
-  zIndex: 999,
+  zIndex: 10000,
   borderRadius: "16px",
-  padding: "0 20px"
+  padding: "0 20px",
+  transform: "translate3d(0, 0, 0)",
+  WebkitTransform: "translate3d(0, 0, 0)"
 };
 
 const navContainerStyle = {
@@ -270,13 +303,15 @@ const navContainerStyle = {
 
 const logoLinkStyle = {
   textDecoration: "none",
-  color: "inherit"
+  color: "inherit",
+  flexShrink: 0
 };
 
 const logoContainerStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "8px"
+  gap: "8px",
+  flexShrink: 0
 };
 
 const logoTextStyle = {
@@ -287,24 +322,9 @@ const logoTextStyle = {
 };
 
 const desktopLinksStyle = {
-  display: "none",
   alignItems: "center",
-  gap: "8px",
-  // CSS Media Query emulation in react
-  "@media (min-width: 900px)": {
-    display: "flex"
-  }
+  gap: "8px"
 };
-
-// Fallback logic handled by useEffect/window listeners or responsive display:
-// Let's inject a style tag or configure standard responsive flex rules:
-const styleTagContent = `
-  @media (min-width: 900px) {
-    .desktop-links-only {
-      display: flex !important;
-    }
-  }
-`;
 
 const navLinkStyle = {
   display: "flex",
@@ -322,7 +342,8 @@ const navLinkStyle = {
 const actionsContainerStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "10px"
+  gap: "10px",
+  flexShrink: 0
 };
 
 const iconButtonStyle = {
@@ -336,6 +357,7 @@ const iconButtonStyle = {
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+  flexShrink: 0,
   transition: "color 0.2s, background 0.2s"
 };
 
@@ -348,7 +370,8 @@ const streakBadgeStyle = {
   borderRadius: "8px",
   background: "rgba(255, 255, 255, 0.02)",
   fontSize: "0.85rem",
-  border: "1px solid var(--border-glass)"
+  border: "1px solid var(--border-glass)",
+  flexShrink: 0
 };
 
 const themeToggleStyle = {
@@ -361,7 +384,8 @@ const themeToggleStyle = {
   cursor: "pointer",
   padding: "2px",
   display: "flex",
-  alignItems: "center"
+  alignItems: "center",
+  flexShrink: 0
 };
 
 const themeDotStyle = {
@@ -379,40 +403,9 @@ const mobileMenuToggleStyle = {
   padding: "4px",
   display: "flex",
   alignItems: "center",
-  justifyContent: "center"
+  justifyContent: "center",
+  flexShrink: 0
 };
-
-// Responsive Styles Inject
-if (typeof document !== "undefined") {
-  const styleId = "navbar-responsive-css";
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = `
-      @media (min-width: 900px) {
-        nav button[style*="display: flex"] {
-          /* Hide hamburger on desktop */
-        }
-        nav div[style*="display: none"] {
-          display: flex !important;
-        }
-        .mobile-hamburger {
-          display: none !important;
-        }
-      }
-      @media (max-width: 899px) {
-        .desktop-nav {
-          display: none !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-
-// Add Classnames for responsive display
-desktopLinksStyle.className = "desktop-nav";
-mobileMenuToggleStyle.className = "mobile-hamburger";
 
 const mobileDrawerStyle = {
   position: "absolute",
@@ -438,6 +431,8 @@ const mobileLinkStyle = {
   alignItems: "center",
   gap: "12px",
   border: "none",
+  backgroundColor: "transparent",
+  fontFamily: "inherit",
   textAlign: "left",
   padding: "12px 16px",
   fontSize: "1rem",

@@ -1,465 +1,533 @@
-import React, { useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { 
-  Award, Flame, TrendingUp, Compass, AlertCircle, Heart,
-  FlameKindling, CheckCircle2, ChevronRight, Zap, Target
+  Flame, Zap, CheckCircle2, ChevronRight, Award, Plus, 
+  BookOpen, HelpCircle, Trophy, Sparkles, MessageCircle, Moon, Sun,
+  Calendar, Compass, Map, Briefcase, ClipboardList, Target, Play, Bookmark, FileText
 } from "lucide-react";
-import ConsistencyTracker from "../components/ConsistencyTracker";
-import BadgeUnlock from "../components/BadgeUnlock";
-import StudyPlanner from "../components/StudyPlanner";
-import DailyQuote from "../components/DailyQuote";
+import CodeBuddyPanel from "../components/CodeBuddyPanel";
 
 export default function Dashboard() {
   const { 
     solvedList, bookmarks, streak, totalQuestions, totalSolved,
     easySolved, mediumSolved, hardSolved, easyTotal, mediumTotal, hardTotal,
-    questions
+    questions, notes, buddyName, buddyXp, setBuddyXp, buddyEnergy, setBuddyEnergy
   } = useContext(AppContext);
 
   const navigate = useNavigate();
 
-  // Calculate dynamic stats
-  const overallPercent = totalQuestions > 0 ? Math.round((totalSolved / totalQuestions) * 100) : 0;
-  const easyPercent = easyTotal > 0 ? Math.round((easySolved / easyTotal) * 100) : 0;
-  const mediumPercent = mediumTotal > 0 ? Math.round((mediumSolved / mediumTotal) * 100) : 0;
-  const hardPercent = hardTotal > 0 ? Math.round((hardSolved / hardTotal) * 100) : 0;
+  // State for buddy speech bubble
+  const [buddySpeech, setBuddySpeech] = useState("Hi there! Ready to write some code today?");
 
-  // Calculate Favorite Topics (topics with the most solved questions)
-  const getFavoriteAndWeakTopics = () => {
-    const topicStats = {};
-    
-    // Group questions by topic
-    questions.forEach(q => {
-      if (!topicStats[q.topic]) {
-        topicStats[q.topic] = { total: 0, solved: 0 };
-      }
-      topicStats[q.topic].total++;
-      if (solvedList.includes(q.id)) {
-        topicStats[q.topic].solved++;
-      }
-    });
+  // Seed daily recommended problem
+  const [dailyProblem, setDailyProblem] = useState(null);
+  useEffect(() => {
+    if (questions.length === 0) return;
+    const today = new Date();
+    const dateNum = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    const index = dateNum % questions.length;
+    setDailyProblem(questions[index]);
+  }, [questions]);
 
-    const topicList = Object.keys(topicStats).map(name => ({
-      name,
-      ...topicStats[name],
-      percent: topicStats[name].total > 0 ? Math.round((topicStats[name].solved / topicStats[name].total) * 100) : 0
-    }));
+  // Buddy Level Calculations
+  const level = Math.floor(buddyXp / 100) + 1;
+  const currentLevelXp = buddyXp % 100;
+  const xpNeeded = 100;
 
-    // Favorite topics: solved > 0, sorted by solved count desc
-    const favorites = [...topicList]
-      .filter(t => t.solved > 0)
-      .sort((a, b) => b.solved - a.solved || b.percent - a.percent)
-      .slice(0, 3);
+  // Count active notes
+  const notesCount = Object.values(notes).filter(n => n.trim().length > 0).length;
 
-    // Weak topics: unsolved > 0, sorted by percent solved asc
-    const weak = [...topicList]
-      .filter(t => t.solved < t.total)
-      .sort((a, b) => a.percent - b.percent || b.total - a.total)
-      .slice(0, 3);
+  // Set up Finch-style Quest items mapped to app events
+  const isDailySolved = dailyProblem ? solvedList.includes(dailyProblem.id) : false;
+  const hasAddedNote = notesCount > 0;
+  const hasBookmarked = bookmarks.length > 0;
+  const hasSolvedEasy = easySolved > 0;
 
-    return { favorites, weak };
+  const quests = [
+    {
+      id: "daily_challenge",
+      title: "Today's Recommended Problem",
+      subtitle: dailyProblem ? dailyProblem.title : "Daily Challenge",
+      xp: 25,
+      completed: isDailySolved,
+      icon: Target,
+      iconColor: "var(--primary)",
+      action: () => dailyProblem && navigate(`/problem/${dailyProblem.id}`)
+    },
+    {
+      id: "solve_easy",
+      title: "Warm Up Quest (Solve an Easy problem)",
+      subtitle: "Get your brain cells compiled and running",
+      xp: 15,
+      completed: hasSolvedEasy,
+      icon: Play,
+      iconColor: "var(--easy)",
+      action: () => navigate("/problems?difficulty=Easy")
+    },
+    {
+      id: "add_note",
+      title: "Revision Sync (Add study notes)",
+      subtitle: "Organize edge cases and patterns in notes",
+      xp: 10,
+      completed: hasAddedNote,
+      icon: FileText,
+      iconColor: "var(--secondary)",
+      action: () => navigate("/revision")
+    },
+    {
+      id: "bookmark_tricky",
+      title: "Target Tracking (Bookmark a tricky problem)",
+      subtitle: "Star a problem to review tomorrow",
+      xp: 5,
+      completed: hasBookmarked,
+      icon: Bookmark,
+      iconColor: "var(--accent)",
+      action: () => navigate("/problems")
+    }
+  ];
+
+  // Calculate remaining goals
+  const goalsLeft = quests.filter(q => !q.completed).length;
+
+  const handleBuddyClick = () => {
+    const dialogs = [
+      `Wow! We have solved ${totalSolved} problems together!`,
+      "Remember to take breaks. Code is temporary, health is permanent!",
+      "I'm feeling extra compiled today!",
+      "Did you know? Turing machine was invented in 1936!",
+      "Let's go on a Debug Quest today!",
+      "Need a hint? Click on a problem and check the progressive hints!",
+      "You're doing great. Keep that daily streak alive!"
+    ];
+    const rand = dialogs[Math.floor(Math.random() * dialogs.length)];
+    setBuddySpeech(rand);
   };
-
-  const { favorites, weak } = getFavoriteAndWeakTopics();
 
   return (
     <div style={containerStyle}>
       
-      {/* Top Welcome Grid */}
-      <div style={welcomeRowStyle}>
-        <div style={welcomeCardStyle} className="glass-panel">
-          <h2 style={{ fontSize: "1.8rem", fontWeight: "800" }}>Welcome Back, Developer</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginTop: "4px" }}>
-            Track your streak, master interview patterns, and analyze your weak spots.
-          </p>
+      {/* Developer Terminal Header Console */}
+      <div className="console-header glass-panel">
+        {/* Left: Companion avatar */}
+        <div className="console-avatar-wrapper" onClick={handleBuddyClick} title="Click Turing to interact">
+          <div style={avatarCircleStyle}>
+            <img 
+              src="code_buddy_pet.png" 
+              alt="Code Buddy" 
+              style={consoleAvatarStyle}
+              className="floating-element"
+            />
+          </div>
+          <div style={consoleLevelStyle}>Lv {level}</div>
         </div>
 
-        {/* Quick Stats Grid */}
-        <div style={quickStatsGridStyle}>
-          {/* Solved Stat */}
-          <div style={quickCardStyle} className="glass-panel">
-            <CheckCircle2 size={20} color="var(--secondary)" />
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={quickLabelStyle}>Overall Solved</span>
-              <span style={quickValStyle}>{totalSolved} / {totalQuestions}</span>
+        {/* Right: Monospace status terminal */}
+        <div style={terminalContainerStyle} className="terminal-container">
+          <div style={terminalHeaderStyle}>
+            <div style={dotGroupStyle}>
+              <span style={{ ...dotStyle, backgroundColor: "#ef4444" }} />
+              <span style={{ ...dotStyle, backgroundColor: "#f59e0b" }} />
+              <span style={{ ...dotStyle, backgroundColor: "#10b981" }} />
             </div>
+            <span style={terminalTitleStyle}>buddy_status_console.sh</span>
           </div>
-
-          {/* Streak Stat */}
-          <div style={quickCardStyle} className="glass-panel">
-            <Flame size={20} color="orange" style={{ fill: streak.current > 0 ? "orange" : "none" }} />
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={quickLabelStyle}>Current Streak</span>
-              <span style={quickValStyle}>{streak.current} Days</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid Content */}
-      <div style={mainGridStyle}>
-        
-        {/* Left Column: Progress Graphs, Heatmap, Achievements */}
-        <div style={leftColStyle}>
           
-          {/* Progress Circular Gauge Card */}
-          <div style={progressOverviewCardStyle} className="glass-panel">
-            <h3 style={sectionTitleStyle}>Progress Summary</h3>
-            
-            <div style={progressGridStyle}>
-              {/* Circular SVG Progress */}
-              <div style={svgContainerStyle}>
-                <svg width="120" height="120" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="10" />
-                  <circle 
-                    cx="60" 
-                    cy="60" 
-                    r="50" 
-                    fill="none" 
-                    stroke="url(#indigoCyanGrad)" 
-                    strokeWidth="10" 
-                    strokeDasharray={2 * Math.PI * 50}
-                    strokeDashoffset={2 * Math.PI * 50 * (1 - overallPercent / 100)}
-                    strokeLinecap="round"
-                    style={{ transform: "rotate(-90deg)", transformOrigin: "60px 60px", transition: "stroke-dashoffset 0.6s ease" }}
-                  />
-                  <defs>
-                    <linearGradient id="indigoCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="var(--primary)" />
-                      <stop offset="100%" stopColor="var(--secondary)" />
-                    </linearGradient>
-                  </defs>
-                  <text x="60" y="66" textAnchor="middle" fill="white" fontWeight="800" fontSize="1.3rem" fontFamily="inherit">
-                    {overallPercent}%
-                  </text>
-                </svg>
-                <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: "600" }}>Total Done</span>
-              </div>
-
-              {/* Progress bars split */}
-              <div style={progressBarsListStyle}>
-                {/* Easy */}
-                <div style={barRowStyle}>
-                  <div style={barLabelsStyle}>
-                    <span style={{ fontWeight: "700" }}>Easy</span>
-                    <span style={{ color: "var(--easy)", fontWeight: "700" }}>{easyPercent}% ({easySolved}/{easyTotal})</span>
-                  </div>
-                  <div style={barBgStyle}>
-                    <div style={{ ...barFillStyle, width: `${easyPercent}%`, backgroundColor: "var(--easy)" }} />
-                  </div>
-                </div>
-
-                {/* Medium */}
-                <div style={barRowStyle}>
-                  <div style={barLabelsStyle}>
-                    <span style={{ fontWeight: "700" }}>Medium</span>
-                    <span style={{ color: "var(--medium)", fontWeight: "700" }}>{mediumPercent}% ({mediumSolved}/{mediumTotal})</span>
-                  </div>
-                  <div style={barBgStyle}>
-                    <div style={{ ...barFillStyle, width: `${mediumPercent}%`, backgroundColor: "var(--medium)" }} />
-                  </div>
-                </div>
-
-                {/* Hard */}
-                <div style={barRowStyle}>
-                  <div style={barLabelsStyle}>
-                    <span style={{ fontWeight: "700" }}>Hard</span>
-                    <span style={{ color: "var(--hard)", fontWeight: "700" }}>{hardPercent}% ({hardSolved}/{hardTotal})</span>
-                  </div>
-                  <div style={barBgStyle}>
-                    <div style={{ ...barFillStyle, width: `${hardPercent}%`, backgroundColor: "var(--hard)" }} />
-                  </div>
-                </div>
-              </div>
+          <div style={terminalBodyStyle}>
+            <div style={{ color: "var(--secondary)", fontWeight: "600", fontSize: "0.8rem", marginBottom: "6px" }} className="code-font">
+              $ cat companion_status.json
+            </div>
+            <div style={terminalTextStyle} className="code-font">
+              "{buddySpeech}"
+            </div>
+            <div style={{ marginTop: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "8px", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+              <span style={terminalStatItemStyle} className="code-font">
+                <Flame size={12} color="var(--primary)" style={{ fill: "var(--primary)", display: "inline" }} /> Streak: {streak.current}d
+              </span>
+              <span style={terminalStatItemStyle} className="code-font">
+                <Zap size={12} color="var(--secondary)" style={{ fill: "var(--secondary)", display: "inline" }} /> Energy: {buddyEnergy}/100
+              </span>
             </div>
           </div>
-
-          {/* Consistency Heatmap Tracker */}
-          <ConsistencyTracker />
-
-          {/* Achievements Badges */}
-          <BadgeUnlock />
         </div>
-
-        {/* Right Column: Planner, Favorite Topics, Weak Topics, Quotes */}
-        <div style={rightColStyle}>
-          {/* Study Goal Planner */}
-          <StudyPlanner />
-
-          {/* Favorite & Weak Topics Analyzer */}
-          <div style={topicsAnalysisCardStyle} className="glass-panel">
-            <h3 style={sectionTitleStyle}>Focus Analysis</h3>
-            
-            {/* Favorites */}
-            <div style={analysisBlockStyle}>
-              <span style={analysisBlockTitleStyle} className="gradient-text-indigo-cyan">Favorite Areas</span>
-              <p style={analysisBlockDescStyle}>Topics where you have solved the most problems.</p>
-              
-              <div style={topicsProgressListStyle}>
-                {favorites.length > 0 ? favorites.map(fav => (
-                  <div key={fav.name} style={topicItemStyle}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
-                      <span style={{ fontWeight: "600" }}>{fav.name}</span>
-                      <span style={{ color: "var(--secondary)", fontWeight: "700" }}>{fav.solved} solved</span>
-                    </div>
-                    <div style={topicBarBgStyle}>
-                      <div style={{ ...topicBarFillStyle, width: `${fav.percent}%`, backgroundColor: "var(--secondary)" }} />
-                    </div>
-                  </div>
-                )) : (
-                  <div style={emptyTopicsStyle}>Mark problems solved to calculate favorites.</div>
-                )}
-              </div>
-            </div>
-
-            {/* Weak Areas */}
-            <div style={analysisBlockStyle}>
-              <span style={{ ...analysisBlockTitleStyle, color: "var(--accent)" }}>Focus Needed</span>
-              <p style={analysisBlockDescStyle}>Topics with high volume and low solved percentages.</p>
-              
-              <div style={topicsProgressListStyle}>
-                {weak.length > 0 ? weak.map(w => (
-                  <div key={w.name} style={topicItemStyle}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
-                      <span style={{ fontWeight: "600" }}>{w.name}</span>
-                      <span style={{ color: "var(--accent)", fontWeight: "700" }}>{w.total - w.solved} left</span>
-                    </div>
-                    <div style={topicBarBgStyle}>
-                      <div style={{ ...topicBarFillStyle, width: `${w.percent}%`, backgroundColor: "var(--accent)" }} />
-                    </div>
-                  </div>
-                )) : (
-                  <div style={emptyTopicsStyle}>All topics 100% completed! A real master!</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Daily Quote Banner */}
-          <DailyQuote />
-        </div>
-
       </div>
+
+      {/* Pet Stats Section (Adventure XP bar) */}
+      <div style={adventureCardStyle} className="glass-panel">
+        <div style={adventureLabelRowStyle}>
+          <div style={lightningWrapperStyle}>
+            <Zap size={18} fill="var(--primary)" color="var(--primary)" />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <span style={adventureTitleStyle}>{level}th Debug Adventure</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+              <div style={barBgStyle}>
+                <div style={{ ...barFillStyle, width: `${(currentLevelXp / xpNeeded) * 100}%` }} />
+              </div>
+              <span style={xpFractionStyle}>{currentLevelXp} / {xpNeeded}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Daily goals header */}
+      <div style={goalsBannerStyle} className="glass-panel">
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Calendar size={18} color="var(--secondary)" />
+          <span style={goalsLeftTextStyle}>
+            {goalsLeft === 0 ? "All goals completed for today!" : `${goalsLeft} goals left for today`}
+          </span>
+        </div>
+        <button onClick={() => navigate("/problems")} style={plusButtonStyle}>
+          <Plus size={16} />
+        </button>
+      </div>
+
+      {/* Task List */}
+      <div style={tasksListStyle}>
+        {quests.map(quest => {
+          const QuestIcon = quest.icon;
+          return (
+            <div 
+              key={quest.id} 
+              onClick={quest.action} 
+              style={{
+                ...taskCardStyle,
+                borderLeft: quest.completed ? "6px solid var(--easy)" : "6px solid var(--border-glass)",
+                opacity: quest.completed ? 0.75 : 1
+              }} 
+              className="glass-panel glass-card-interactive"
+            >
+              {/* Left side: Icon badge */}
+              <div style={taskIconWrapperStyle}>
+                <QuestIcon size={20} color={quest.iconColor || "var(--text-secondary)"} />
+              </div>
+
+              {/* Mid side: text details */}
+              <div style={taskInfoStyle}>
+                <h4 style={taskTitleStyle}>{quest.title}</h4>
+                <span style={taskSubtitleStyle}>{quest.subtitle}</span>
+              </div>
+
+              {/* Right side: XP amount + checkbox */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "auto" }}>
+                <span style={xpLabelStyle} className="code-font">
+                  {quest.xp} <Zap size={10} style={{ display: "inline", fill: "var(--primary)" }} color="var(--primary)" />
+                </span>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    quest.action();
+                  }}
+                  style={{
+                    ...checkButtonStyle,
+                    backgroundColor: quest.completed ? "var(--easy)" : "rgba(255, 255, 255, 0.05)",
+                    borderColor: quest.completed ? "var(--easy)" : "var(--border-glass)",
+                    color: quest.completed ? "#040910" : "var(--text-muted)"
+                  }}
+                >
+                  <CheckCircle2 size={16} style={{ fill: quest.completed ? "rgba(255,255,255,0.2)" : "none" }} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Quick links */}
+      <div className="quick-links-grid">
+        <div style={quickLinkCardStyle} className="glass-panel glass-card-interactive" onClick={() => navigate("/problems")}>
+          <Compass size={20} color="var(--primary)" />
+          <span style={quickLinkLabelStyle}>Debug Quests</span>
+        </div>
+        <div style={quickLinkCardStyle} className="glass-panel glass-card-interactive" onClick={() => navigate("/roadmap")}>
+          <Map size={20} color="var(--secondary)" />
+          <span style={quickLinkLabelStyle}>Topic Map</span>
+        </div>
+        <div style={quickLinkCardStyle} className="glass-panel glass-card-interactive" onClick={() => navigate("/company")}>
+          <Briefcase size={20} color="var(--accent)" />
+          <span style={quickLinkLabelStyle}>Company Hub</span>
+        </div>
+        <div style={quickLinkCardStyle} className="glass-panel glass-card-interactive" onClick={() => navigate("/revision")}>
+          <ClipboardList size={20} color="var(--easy)" />
+          <span style={quickLinkLabelStyle}>Bag & Notes</span>
+        </div>
+      </div>
+
     </div>
   );
 }
 
-// Styles
+// Inline Styles to replicate Finch App Layout exactly
 const containerStyle = {
   paddingTop: "100px",
   paddingBottom: "60px",
-  maxWidth: "1400px",
+  maxWidth: "640px", /* Finch is a vertical mobile app! Capped at 640px for ideal desktop view too */
   margin: "0 auto",
   paddingLeft: "16px",
   paddingRight: "16px",
   display: "flex",
   flexDirection: "column",
-  gap: "24px"
+  gap: "18px"
 };
 
-const welcomeRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: "16px"
+const consoleAvatarStyle = {
+  width: "80px",
+  height: "80px",
+  objectFit: "contain"
 };
 
-const welcomeCardStyle = {
-  padding: "20px",
-  borderRadius: "16px",
-  flex: "1 1 400px"
-};
-
-const quickStatsGridStyle = {
-  display: "flex",
-  gap: "12px",
-  flexWrap: "wrap",
-  flex: "0 0 auto",
-  width: "100%",
-  // Handled by CSS file classes for alignment
-  "@media (min-width: 600px)": {
-    width: "auto"
-  }
-};
-
-// Responsive CSS inject
-if (typeof document !== "undefined") {
-  const styleId = "dashboard-responsive-css";
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = `
-      @media (min-width: 600px) {
-        .quick-grid {
-          width: auto !important;
-        }
-      }
-      @media (min-width: 900px) {
-        .dashboard-grid {
-          grid-template-columns: 1.1fr 0.9fr !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-quickStatsGridStyle.className = "quick-grid";
-
-const quickCardStyle = {
+const avatarCircleStyle = {
+  width: "90px",
+  height: "90px",
+  borderRadius: "50%",
+  background: "rgba(255, 255, 255, 0.03)",
+  border: "1px solid var(--border-glass)",
   display: "flex",
   alignItems: "center",
-  gap: "12px",
-  padding: "12px 20px",
-  borderRadius: "12px",
-  minWidth: "160px",
-  flex: "1"
+  justifyContent: "center",
+  overflow: "hidden"
 };
 
-const quickLabelStyle = {
+const consoleLevelStyle = {
+  marginTop: "10px",
+  background: "var(--primary)",
+  color: "#08141d",
+  fontWeight: "800",
   fontSize: "0.75rem",
-  color: "var(--text-muted)",
-  fontWeight: "600",
-  textTransform: "uppercase"
+  padding: "3px 10px",
+  borderRadius: "20px",
+  boxShadow: "0 2px 8px var(--primary-glow)",
+  border: "1px solid rgba(255,255,255,0.15)",
+  textAlign: "center"
 };
 
-const quickValStyle = {
-  fontSize: "1rem",
+const terminalContainerStyle = {
+  flex: 1,
+  background: "rgba(3, 7, 18, 0.4)",
+  borderRadius: "16px",
+  border: "1px solid var(--border-glass)",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+  minHeight: "150px"
+};
+
+const terminalHeaderStyle = {
+  background: "rgba(255, 255, 255, 0.03)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+  padding: "8px 12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between"
+};
+
+const dotGroupStyle = {
+  display: "flex",
+  gap: "6px"
+};
+
+const dotStyle = {
+  width: "8px",
+  height: "8px",
+  borderRadius: "50%"
+};
+
+const terminalTitleStyle = {
+  fontSize: "0.7rem",
+  color: "var(--text-secondary)",
+  fontWeight: "600",
+  fontFamily: "Space Grotesk, Courier New, monospace"
+};
+
+const terminalBodyStyle = {
+  padding: "12px 14px",
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between"
+};
+
+const terminalTextStyle = {
+  fontSize: "0.85rem",
+  lineHeight: "1.45",
+  color: "var(--text-primary)",
+  fontStyle: "italic",
+  margin: "6px 0",
+  wordBreak: "break-word"
+};
+
+const terminalStatItemStyle = {
+  fontSize: "0.75rem",
+  color: "var(--text-secondary)",
+  display: "flex",
+  alignItems: "center",
+  gap: "4px",
+  fontWeight: "600"
+};
+
+const adventureCardStyle = {
+  padding: "12px 16px",
+  borderRadius: "16px",
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-glass)"
+};
+
+const adventureLabelRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px"
+};
+
+const lightningWrapperStyle = {
+  background: "rgba(251, 191, 36, 0.1)",
+  borderRadius: "10px",
+  width: "34px",
+  height: "34px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+};
+
+const adventureTitleStyle = {
+  fontSize: "0.85rem",
   fontWeight: "750",
   color: "var(--text-primary)"
 };
 
-const mainGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: "24px"
-};
-mainGridStyle.className = "dashboard-grid";
-
-const leftColStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "24px"
-};
-
-const rightColStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "24px"
-};
-
-const progressOverviewCardStyle = {
-  padding: "20px",
-  borderRadius: "16px"
-};
-
-const sectionTitleStyle = {
-  fontSize: "1.1rem",
-  fontWeight: "750",
-  marginBottom: "16px"
-};
-
-const progressGridStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "32px",
-  flexWrap: "wrap"
-};
-
-const svgContainerStyle = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "8px"
-};
-
-const progressBarsListStyle = {
-  flex: "1",
-  display: "flex",
-  flexDirection: "column",
-  gap: "14px",
-  minWidth: "220px"
-};
-
-const barRowStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "6px"
-};
-
-const barLabelsStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  fontSize: "0.82rem"
-};
-
 const barBgStyle = {
-  width: "100%",
-  height: "7px",
-  borderRadius: "4px",
-  background: "rgba(255,255,255,0.03)"
+  flex: 1,
+  height: "10px",
+  borderRadius: "5px",
+  background: "rgba(255, 255, 255, 0.05)",
+  overflow: "hidden",
+  border: "1px solid rgba(255, 255, 255, 0.02)"
 };
 
 const barFillStyle = {
   height: "100%",
-  borderRadius: "4px",
-  transition: "width 0.4s ease"
+  background: "linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%)",
+  borderRadius: "5px"
 };
 
-const topicsAnalysisCardStyle = {
-  padding: "20px",
+const xpFractionStyle = {
+  fontSize: "0.75rem",
+  fontWeight: "700",
+  marginLeft: "10px",
+  color: "var(--text-secondary)",
+  minWidth: "60px",
+  textAlign: "right"
+};
+
+const goalsBannerStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "14px 20px",
   borderRadius: "16px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "20px"
+  background: "var(--bg-card)",
+  border: "1px solid var(--border-glass)"
 };
 
-const analysisBlockStyle = {
-  display: "flex",
-  flexDirection: "column"
-};
-
-const analysisBlockTitleStyle = {
+const goalsLeftTextStyle = {
   fontSize: "0.95rem",
   fontWeight: "750",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px"
+  color: "var(--text-primary)"
 };
 
-const analysisBlockDescStyle = {
-  fontSize: "0.8rem",
-  color: "var(--text-muted)",
-  marginBottom: "10px"
+const plusButtonStyle = {
+  background: "none",
+  border: "none",
+  color: "var(--text-secondary)",
+  cursor: "pointer",
+  padding: "4px",
+  borderRadius: "50%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(255, 255, 255, 0.05)"
 };
 
-const topicsProgressListStyle = {
+const tasksListStyle = {
   display: "flex",
   flexDirection: "column",
   gap: "10px"
 };
 
-const topicItemStyle = {
+const taskCardStyle = {
+  display: "flex",
+  alignItems: "center",
+  padding: "16px",
+  borderRadius: "18px",
+  cursor: "pointer",
+  transition: "all 0.2s"
+};
+
+const taskIconWrapperStyle = {
+  width: "44px",
+  height: "44px",
+  borderRadius: "12px",
+  background: "rgba(255, 255, 255, 0.02)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+};
+
+const taskInfoStyle = {
   display: "flex",
   flexDirection: "column",
-  gap: "4px"
+  gap: "3px",
+  marginLeft: "14px",
+  flex: 1
 };
 
-const topicBarBgStyle = {
-  width: "100%",
-  height: "5px",
-  borderRadius: "3px",
-  background: "rgba(255,255,255,0.03)"
+const taskTitleStyle = {
+  fontSize: "0.92rem",
+  fontWeight: "750",
+  color: "var(--text-primary)",
+  lineHeight: "1.3"
 };
 
-const topicBarFillStyle = {
-  height: "100%",
-  borderRadius: "3px"
+const taskSubtitleStyle = {
+  fontSize: "0.78rem",
+  color: "var(--text-secondary)"
 };
 
-const emptyTopicsStyle = {
-  fontSize: "0.8rem",
-  color: "var(--text-secondary)",
-  fontStyle: "italic",
-  padding: "4px 0"
+const xpLabelStyle = {
+  fontSize: "0.85rem",
+  fontWeight: "800",
+  color: "var(--primary)",
+  display: "flex",
+  alignItems: "center",
+  gap: "3px"
+};
+
+const checkButtonStyle = {
+  border: "1px solid",
+  width: "36px",
+  height: "36px",
+  borderRadius: "10px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  transition: "all 0.2s"
+};
+
+const quickLinkCardStyle = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "6px",
+  padding: "12px 6px",
+  borderRadius: "16px",
+  textAlign: "center",
+  cursor: "pointer"
+};
+
+const quickLinkLabelStyle = {
+  fontSize: "0.72rem",
+  fontWeight: "700",
+  color: "var(--text-secondary)"
 };

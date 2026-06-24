@@ -90,7 +90,7 @@ export default function LearningCenter() {
       </div>
 
       {/* Theory & Visual Blocks */}
-      <div style={contentSplitStyle}>
+      <div className="learning-split">
         {/* Left Column: Theory & Visual Illustration */}
         <div style={leftColStyle}>
           <div style={infoCardStyle} className="glass-panel">
@@ -224,32 +224,7 @@ const backButtonStyle = {
   transition: "all 0.2s"
 };
 
-const contentSplitStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: "24px",
-  "@media (min-width: 900px)": {
-    gridTemplateColumns: "1.1fr 0.9fr"
-  }
-};
 
-// Responsive Inject
-if (typeof document !== "undefined") {
-  const styleId = "learningcenter-responsive-css";
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = `
-      @media (min-width: 900px) {
-        .learning-split {
-          grid-template-columns: 1.1fr 0.9fr !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-contentSplitStyle.className = "learning-split";
 
 const leftColStyle = {
   display: "flex",

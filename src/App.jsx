@@ -63,7 +63,8 @@ const appLayoutStyle = {
 
 const mainContentStyle = {
   flex: "1 0 auto",
-  width: "100%"
+  width: "100%",
+  overflowX: "hidden"
 };
 
 export default App;

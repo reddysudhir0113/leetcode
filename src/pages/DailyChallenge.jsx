@@ -74,7 +74,7 @@ export default function DailyChallenge() {
       </div>
 
       {/* Main split: Daily vs Custom Generator */}
-      <div style={splitGridStyle}>
+      <div className="challenge-split">
         
         {/* Left Card: Daily Recommended Problem */}
         <div style={challengeCardStyle} className="glass-panel">
@@ -188,33 +188,7 @@ const bannerStyle = {
   gap: "6px"
 };
 
-const splitGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: "24px",
-  // Handled responsively
-  "@media (min-width: 850px)": {
-    gridTemplateColumns: "1fr 1fr"
-  }
-};
 
-// Responsive CSS inject
-if (typeof document !== "undefined") {
-  const styleId = "challenge-responsive-css";
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = `
-      @media (min-width: 850px) {
-        .challenge-split {
-          grid-template-columns: 1fr 1fr !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-splitGridStyle.className = "challenge-split";
 
 const challengeCardStyle = {
   padding: "24px",

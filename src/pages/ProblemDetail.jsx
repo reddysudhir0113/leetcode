@@ -147,7 +147,7 @@ export default function ProblemDetail() {
       </div>
 
       {/* Two-Column Grid Layout */}
-      <div style={contentGridStyle}>
+      <div className="detail-grid">
         
         {/* Left Column: Problem details, complexity, links & notes */}
         <div style={leftColStyle}>
@@ -355,33 +355,7 @@ const patternStyle = {
   fontWeight: "600"
 };
 
-const contentGridStyle = {
-  display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: "24px",
-  // Handled by CSS file classes for 2 columns on desktop
-  "@media (min-width: 900px)": {
-    gridTemplateColumns: "1.2fr 0.8fr"
-  }
-};
 
-// Responsive Styles Inject
-if (typeof document !== "undefined") {
-  const styleId = "problemdetail-responsive-css";
-  if (!document.getElementById(styleId)) {
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.innerHTML = `
-      @media (min-width: 900px) {
-        .detail-grid {
-          grid-template-columns: 1.1fr 0.9fr !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-contentGridStyle.className = "detail-grid";
 
 const leftColStyle = {
   display: "flex",

@@ -3,9 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { 
   Award, Compass, BookOpen, Clock, Code, Shield, CheckCircle, 
-  MapPin, ChevronRight, Zap, Target, ArrowRight 
+  MapPin, ChevronRight, Zap, Target, ArrowRight, Smile 
 } from "lucide-react";
 import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function LandingPage() {
   const { totalQuestions, totalSolved } = useContext(AppContext);
@@ -18,6 +21,7 @@ export default function LandingPage() {
   const statsRef = useRef(null);
   const featuresRef = useRef(null);
   const timelineRef = useRef(null);
+  const showcaseRef = useRef(null);
 
   useEffect(() => {
     // Hero entrance animations
@@ -85,6 +89,39 @@ export default function LandingPage() {
         }
       }
     );
+
+    // Parallax on hero graphic wrapper on scroll
+    gsap.fromTo(".hero-graphic-wrapper",
+      { y: 0 },
+      {
+        y: -40,
+        scrollTrigger: {
+          trigger: ".hero-split-container",
+          start: "top top",
+          scrub: true
+        }
+      }
+    );
+
+    // Showcase browser window scroll trigger scale & reveal
+    if (showcaseRef.current) {
+      gsap.fromTo(showcaseRef.current.querySelector(".showcase-window"),
+        { scale: 0.94, opacity: 0.3, y: 30 },
+        {
+          scale: 1,
+          opacity: 1,
+          y: 0,
+          duration: 1,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: showcaseRef.current,
+            start: "top 80%",
+            end: "bottom 60%",
+            scrub: true
+          }
+        }
+      );
+    }
   }, []);
 
   const whyChooseUs = [
@@ -107,6 +144,11 @@ export default function LandingPage() {
       icon: Zap,
       title: "Daily Challenges",
       description: "Stay consistent with daily problem draws, automated trackers, and streak mechanics."
+    },
+    {
+      icon: Smile,
+      title: "Cozy Code Buddy",
+      description: "Adopt a customizable penguin coder companion that gains XP, levels up, and travels on debugging adventures as you mark questions solved."
     }
   ];
 
@@ -140,29 +182,45 @@ export default function LandingPage() {
       <div style={glow2Style} className="pulse-glow-bg" />
 
       {/* Hero Section */}
-      <section style={heroSectionStyle}>
-        <div ref={heroTitleRef} style={heroHeaderStyle}>
-          <div style={badgeContainerStyle} className="glass-panel">
-            <span style={badgeIconStyle}>✨</span>
-            <span style={{ fontSize: "0.85rem", fontWeight: "700" }}>The Pattern Prep System</span>
+      <section className="hero-split-container">
+        {/* Left Side: Copy */}
+        <div className="hero-copy-container">
+          <div ref={heroTitleRef} style={heroHeaderStyle}>
+            <div style={badgeContainerStyle} className="glass-panel">
+              <span style={{ fontSize: "0.85rem", fontWeight: "700" }}>The Pattern Prep System</span>
+            </div>
+            <h1 style={heroTitleStyle}>
+              Master Coding Interviews <br />
+              <span className="gradient-text-indigo-cyan">One Pattern At A Time</span>
+            </h1>
           </div>
-          <h1 style={heroTitleStyle}>
-            Master Coding Interviews <br />
-            <span className="gradient-text-indigo-cyan">One Pattern At A Time</span>
-          </h1>
+
+          <p ref={heroSubtitleRef} style={heroSubtitleStyle}>
+            CodeCrack teaches you how to identify patterns, master the core 8 algorithm structures, and build interview confidence instead of memorizing individual questions.
+          </p>
+
+          <div ref={heroCtaRef} style={ctaGroupStyle}>
+            <button onClick={() => navigate("/dashboard")} className="btn-primary" style={{ padding: "14px 28px", fontSize: "1rem" }}>
+              Start Practicing <ArrowRight size={18} />
+            </button>
+            <button onClick={() => navigate("/roadmap")} className="btn-secondary" style={{ padding: "14px 28px", fontSize: "1rem" }}>
+              View Topic Roadmaps
+            </button>
+          </div>
         </div>
 
-        <p ref={heroSubtitleRef} style={heroSubtitleStyle}>
-          CodeCrack teaches you how to identify patterns, optimize time/space complexity, and build interview confidence rather than memorizing individual solutions.
-        </p>
-
-        <div ref={heroCtaRef} style={ctaGroupStyle}>
-          <button onClick={() => navigate("/problems")} className="btn-primary" style={{ padding: "14px 28px", fontSize: "1rem" }}>
-            Start Practicing <ArrowRight size={18} />
-          </button>
-          <button onClick={() => navigate("/roadmap")} className="btn-secondary" style={{ padding: "14px 28px", fontSize: "1rem" }}>
-            View Topic Roadmaps
-          </button>
+        {/* Right Side: Graphic Visual */}
+        <div className="hero-graphic-wrapper">
+          <div className="glass-panel" style={heroGraphicPanelStyle}>
+            <img 
+              src="hero_graphic.png" 
+              alt="Holographic Coder Workspace" 
+              style={heroGraphicImgStyle}
+              className="floating-element"
+            />
+            {/* Ambient gold/teal highlight borders inside card */}
+            <div style={glowingEdgeStyle} />
+          </div>
         </div>
       </section>
 
@@ -184,6 +242,38 @@ export default function LandingPage() {
           <div style={statCardStyle} className="glass-panel">
             <span style={statNumberStyle} className="gradient-text-indigo-cyan">19</span>
             <span style={statLabelStyle}>Topic Categories</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Interactive Showcase Section (Mock Terminal Showcase) */}
+      <section ref={showcaseRef} style={showcaseSectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <h2 style={sectionTitleStyle}>Elevate Your Prep Experience</h2>
+          <p style={sectionSubtitleStyle}>
+            A complete suite of diagnostic charts, personal study trackers, and a cozy companion penguin in a developer terminal context.
+          </p>
+        </div>
+
+        {/* Browser window frame mockup */}
+        <div className="showcase-window glass-panel" style={showcaseWindowStyle}>
+          {/* Browser header bar */}
+          <div style={browserHeaderStyle}>
+            <div style={dotGroupStyle}>
+              <span style={{ ...dotStyle, backgroundColor: "#ef4444" }} />
+              <span style={{ ...dotStyle, backgroundColor: "#f59e0b" }} />
+              <span style={{ ...dotStyle, backgroundColor: "#10b981" }} />
+            </div>
+            <div style={browserAddressStyle} className="code-font">https://codecrack.io/dashboard</div>
+          </div>
+          
+          {/* Image preview */}
+          <div style={showcaseImageContainerStyle}>
+            <img 
+              src="platform_preview.png" 
+              alt="CodeCrack Dashboard Mockup" 
+              style={showcaseImgStyle}
+            />
           </div>
         </div>
       </section>
@@ -264,7 +354,8 @@ const pageContainerStyle = {
   margin: "0 auto",
   paddingLeft: "16px",
   paddingRight: "16px",
-  position: "relative"
+  position: "relative",
+  overflowX: "hidden"
 };
 
 const glow1Style = {
@@ -291,18 +382,10 @@ const glow2Style = {
   zIndex: -1
 };
 
-const heroSectionStyle = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  textAlign: "center",
-  padding: "60px 0 40px 0"
-};
-
 const heroHeaderStyle = {
   display: "flex",
   flexDirection: "column",
-  alignItems: "center",
+  alignItems: "flex-start",
   gap: "16px"
 };
 
@@ -315,10 +398,6 @@ const badgeContainerStyle = {
   border: "1px solid var(--border-glass)"
 };
 
-const badgeIconStyle = {
-  fontSize: "0.9rem"
-};
-
 const heroTitleStyle = {
   fontSize: "clamp(2rem, 5vw, 3.5rem)",
   fontWeight: "800",
@@ -329,7 +408,7 @@ const heroTitleStyle = {
 const heroSubtitleStyle = {
   fontSize: "clamp(1rem, 2.5vw, 1.15rem)",
   color: "var(--text-secondary)",
-  maxWidth: "750px",
+  maxWidth: "600px",
   marginTop: "24px",
   lineHeight: "1.6"
 };
@@ -338,8 +417,110 @@ const ctaGroupStyle = {
   display: "flex",
   gap: "16px",
   marginTop: "32px",
-  flexWrap: "wrap",
-  justifyContent: "center"
+  flexWrap: "wrap"
+};
+
+const heroGraphicPanelStyle = {
+  width: "100%",
+  maxWidth: "500px",
+  borderRadius: "24px",
+  overflow: "hidden",
+  position: "relative",
+  padding: "10px",
+  background: "rgba(255,255,255,0.01)",
+  border: "1px solid var(--border-glass)",
+  boxShadow: "0 20px 50px rgba(0,0,0,0.4)"
+};
+
+const heroGraphicImgStyle = {
+  width: "100%",
+  borderRadius: "16px",
+  objectFit: "cover",
+  display: "block"
+};
+
+const glowingEdgeStyle = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  borderRadius: "24px",
+  pointerEvents: "none",
+  border: "1px solid rgba(45, 212, 191, 0.25)",
+  boxShadow: "inset 0 0 20px rgba(45, 212, 191, 0.05)"
+};
+
+// Showcase Section Styles
+const showcaseSectionStyle = {
+  marginTop: "100px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center"
+};
+
+const showcaseWindowStyle = {
+  width: "100%",
+  maxWidth: "960px",
+  borderRadius: "20px",
+  overflow: "hidden",
+  background: "rgba(15, 23, 42, 0.6)",
+  border: "1px solid var(--border-glass)",
+  boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+  marginTop: "20px"
+};
+
+const browserHeaderStyle = {
+  background: "rgba(255, 255, 255, 0.03)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+  padding: "10px 16px",
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  position: "relative"
+};
+
+const dotGroupStyle = {
+  display: "flex",
+  gap: "6px",
+  zIndex: 2
+};
+
+const dotStyle = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "50%"
+};
+
+const browserAddressStyle = {
+  position: "absolute",
+  left: "50%",
+  transform: "translateX(-50%)",
+  background: "rgba(0, 0, 0, 0.25)",
+  border: "1px solid rgba(255, 255, 255, 0.05)",
+  borderRadius: "6px",
+  padding: "3px 16px",
+  fontSize: "0.75rem",
+  color: "var(--text-secondary)",
+  width: "240px",
+  textAlign: "center",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap"
+};
+
+const showcaseImageContainerStyle = {
+  width: "100%",
+  aspectRatio: "16/10",
+  overflow: "hidden",
+  background: "var(--bg-darker)"
+};
+
+const showcaseImgStyle = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  transition: "transform 0.5s ease"
 };
 
 const sectionStyle = {

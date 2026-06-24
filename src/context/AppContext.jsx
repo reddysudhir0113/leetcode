@@ -29,6 +29,24 @@ export const AppProvider = ({ children }) => {
   // Achievement badges states
   const [unlockedBadges, setUnlockedBadges] = useState(() => getLocalStorage("codecrack_badges", []));
 
+  // Code Buddy States
+  const [buddyName, setBuddyName] = useState(() => getLocalStorage("codecrack_buddy_name", "Turing"));
+  const [buddyXp, setBuddyXp] = useState(() => getLocalStorage("codecrack_buddy_xp", 0));
+  const [buddyEnergy, setBuddyEnergy] = useState(() => getLocalStorage("codecrack_buddy_energy", 30));
+
+  // Sync state to LocalStorage
+  useEffect(() => {
+    localStorage.setItem("codecrack_buddy_name", JSON.stringify(buddyName));
+  }, [buddyName]);
+
+  useEffect(() => {
+    localStorage.setItem("codecrack_buddy_xp", JSON.stringify(buddyXp));
+  }, [buddyXp]);
+
+  useEffect(() => {
+    localStorage.setItem("codecrack_buddy_energy", JSON.stringify(buddyEnergy));
+  }, [buddyEnergy]);
+
   // Sync state to LocalStorage
   useEffect(() => {
     localStorage.setItem("codecrack_solved", JSON.stringify(solvedList));
@@ -130,6 +148,12 @@ export const AppProvider = ({ children }) => {
       const newLogs = [...activityLog, todayStr];
       setActivityLog(newLogs);
       updateStreakFromActivity(newLogs);
+
+      // Reward Code Buddy!
+      const q = questions.find(x => x.id === id);
+      const points = q ? (q.difficulty === "Easy" ? 15 : q.difficulty === "Medium" ? 25 : 40) : 20;
+      setBuddyXp(prev => prev + points);
+      setBuddyEnergy(prev => Math.min(prev + points, 100));
     }
   };
 
@@ -139,11 +163,20 @@ export const AppProvider = ({ children }) => {
       setBookmarks(prev => prev.filter(x => x !== id));
     } else {
       setBookmarks(prev => [...prev, id]);
+      // Reward Code Buddy XP!
+      setBuddyXp(prev => prev + 5);
+      setBuddyEnergy(prev => Math.min(prev + 5, 100));
     }
   };
 
   // Save personal notes
   const saveNote = (id, noteText) => {
+    // Reward XP for note taking if note was empty and is now filled
+    const isNewNote = (!notes[id] || notes[id].trim().length === 0) && (noteText.trim().length > 0);
+    if (isNewNote) {
+      setBuddyXp(prev => prev + 10);
+      setBuddyEnergy(prev => Math.min(prev + 5, 100));
+    }
     setNotes(prev => ({
       ...prev,
       [id]: noteText
@@ -168,6 +201,9 @@ export const AppProvider = ({ children }) => {
     setStreak({ current: 0, lastDate: "" });
     setUnlockedBadges([]);
     setWeeklyGoal(5);
+    setBuddyName("Turing");
+    setBuddyXp(0);
+    setBuddyEnergy(30);
   };
 
   // Check achievements dynamically
@@ -304,7 +340,13 @@ export const AppProvider = ({ children }) => {
         saveNote,
         addRecentlyViewed,
         updateWeeklyGoal: setWeeklyGoal,
-        resetProgress
+        resetProgress,
+        buddyName,
+        setBuddyName,
+        buddyXp,
+        setBuddyXp,
+        buddyEnergy,
+        setBuddyEnergy
       }}
     >
       {children}
